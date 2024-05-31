@@ -1,32 +1,46 @@
 # Maintainer: Sebastian Weiss <dl3yc@darc.de>
 
 _target=arm-none-eabi
-pkgname=$_target-picolibc
-pkgver=1.7.9
+pkgname=$_target-picolibc-git
+pkgver=1.8.6.r232.g695583c3b
 pkgrel=1
 pkgdesc='Fork of newlib with stdio bits from avrlibc'
-conflicts=("$_target-newlib")
 arch=('i686' 'x86_64')
 url='https://github.com/picolibc/picolibc'
-license=('BSD')
-makedepends=("$_target-gcc" 'meson')
-source=("picolibc-$pkgver.tar.gz::$url/archive/$pkgver.tar.gz")
-sha256sums=('ad08e5b849a7c64338896f99177a0215cd47a805efcdf625eb4c9bc1b39bd1d3')
-options=(!strip !buildflags)
+license=('GPL')
+makedepends=("$_target-gcc" 'git' 'meson')
+provides=("arm-none-eabi-picolibc=$pkgver")
+source=("git+https://github.com/picolibc/picolibc.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "picolibc"
+
+  _tag=$(git tag -l --sort -creatordate | grep -E '^v?[0-9\.]+$' | head -n1)
+  _rev=$(git rev-list --count $_tag..HEAD)
+  _hash=$(git rev-parse --short HEAD)
+  printf "%s.r%s.g%s" "$_tag" "$_rev" "$_hash" | sed 's/^v//'
+}
 
 build() {
-  meson \
-    --prefix="/usr/$_target" \
-    --buildtype=plain \
-    --cross-file "picolibc-$pkgver/scripts/cross-${_target}.txt" \
-    "picolibc-$pkgver" build
+  cd "picolibc"
 
-  meson compile -C build
+  meson setup \
+    --prefix="/usr/$_target" \
+    --includedir="include/picolibc" \
+    --libdir="lib/picolibc" \
+    --debug \
+    --optimization=s \
+    -Dspecsdir="lib" \
+    --cross-file "scripts/cross-${_target}.txt" \
+    "_build"
+
+  meson compile -C "_build"
 }
 
 package() {
-  DESTDIR="$pkgdir" meson install -C build
-  install -Dm644 -t "$pkgdir/usr/share/licenses/$pkgname/" "$srcdir/picolibc-$pkgver/COPYING."{GPL2,NEWLIB,picolibc}
-}
+  cd "picolibc"
 
-# vim: set ts=2 sw=2 et:
+  meson install -C "_build" --destdir "$pkgdir"
+  install -Dm644 -t "$pkgdir/usr/share/licenses/$pkgname/" "$srcdir/picolibc/COPYING."{GPL2,NEWLIB,picolibc}
+}
