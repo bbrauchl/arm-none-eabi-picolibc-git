@@ -12,6 +12,7 @@ makedepends=("$_target-gcc" 'git' 'meson')
 provides=("arm-none-eabi-picolibc=$pkgver")
 source=("git+https://github.com/picolibc/picolibc.git")
 sha256sums=('SKIP')
+options=(!strip !buildflags)
 
 pkgver() {
   cd "picolibc"
@@ -26,13 +27,13 @@ build() {
   cd "picolibc"
 
   meson setup \
-    --prefix="/usr/$_target" \
+    --prefix="/usr/${_target}" \
     --includedir="include/picolibc" \
     --libdir="lib/picolibc" \
     --debug \
     --optimization=s \
     -Dspecsdir="lib" \
-    --cross-file "scripts/cross-${_target}.txt" \
+    --cross-file="scripts/cross-${_target}.txt" \
     "_build"
 
   meson compile -C "_build"
